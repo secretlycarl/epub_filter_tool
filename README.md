@@ -20,10 +20,8 @@ Note - It is set up to process 10 books at a time
 # sortgui.py
 1. Browse for a folder that has been processed by grsearch.py and load the epub and txt files
 2. Sort by genre and view books associated with the selected genre
-   
-3a. Button to delete currently filtered books
-
-3b. Button to move currently filtered books to a folder with the genre name
+3. Button to delete currently filtered books
+4. Button to move currently filtered books to a folder with the genre name
 
 # Things to Work On
 I don't think my implementation of selenium with the webdriver and beautifulsoup are as efficient as they can be, and its supposed to be headless but I can't get it to stop opening windows.
