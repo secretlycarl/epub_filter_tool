@@ -3,6 +3,8 @@ a tool to find genres associated with epubs by searching goodreads, with a simpl
 
 This code is currently a WIP. It works, but with some limitations/inefficiencies. 
 
+No provided requirements.txt yet, will include when the script is improved.
+
 The overall flow is as follows, broken up into 2 scripts -
 
 # grsearch.py
