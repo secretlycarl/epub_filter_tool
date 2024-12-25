@@ -25,6 +25,8 @@ Note - It is set up to process 10 books at a time
 3. Button to delete currently filtered books
 4. Button to move currently filtered books to a folder with the genre name
 
+![sortgui](https://github.com/secretlycarl/epub_filter_tool/blob/main/sortgui/sortgui.png)
+
 # Things to Work On
 I don't think my implementation of selenium with the webdriver and beautifulsoup are as efficient as they can be, and its supposed to be headless but I can't get it to stop opening windows.
 - The pages load very quickly, but the script takes a while to parse the webpages for the content I want. It takes about 5hr to process 1000 books.
