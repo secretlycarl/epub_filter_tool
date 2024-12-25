@@ -13,7 +13,7 @@ The overall flow is as follows, broken up into 2 scripts -
 3. The cleaned up filenames are passed to automated Chrome windows with a GoodReads search URL
 4. The search page is checked for results, and the book page URL and amount of ratings are parsed
 5. If there are less than 500 ratings, a txt file matching the original epub filename is saved with the text "unpopular" and any further processing for that book is skipped.
-6. If there is no book found, a txt file '                                                                  ' "unknown" '                                                  '.
+6. If there is no book found, a txt file with "unknown" is saved for the book and the genre logic is skipped.
 7. Once the book is found, it navigates to the book page to find the genres, and saves them to a text file.
 8. Once the entire is folder is processed, another folder path can be entered.
    
