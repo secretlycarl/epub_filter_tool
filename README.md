@@ -14,7 +14,8 @@ The overall flow is as follows, broken up into 2 scripts -
 6. If there is no book found, a txt file '                                                                  ' "unknown" '                                                  '.
 7. Once the book is found, it navigates to the book page to find the genres, and saves them to a text file.
 8. Once the entire is folder is processed, another folder path can be entered.
-   Note - It is set up to process 10 books at a time
+   
+Note - It is set up to process 10 books at a time
 
 # sortgui.py
 1. Browse for a folder that has been processed by grsearch.py and load the epub and txt files
