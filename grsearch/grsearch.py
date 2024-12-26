@@ -95,9 +95,26 @@ def save_genres_to_file(original_filename, genres, directory):
 def create_driver():
     """Create a headless Chrome WebDriver."""
     options = Options()
-    options.headless = True  # Enable headless mode
+    options.add_argument("--headless")  # Ensure headless mode
+    options.add_argument("--disable-gpu")
+    options.add_argument("--no-sandbox")
+    options.add_argument("--disable-dev-shm-usage")
+    options.add_argument("--window-size=1920,1080")
+    options.add_argument("--disable-extensions")
+    options.add_argument("--disable-blink-features=AutomationControlled")
+    options.add_argument("user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36")
+    options.add_experimental_option("excludeSwitches", ["enable-automation"])
+    options.add_experimental_option('useAutomationExtension', False)
+    
     service = Service()  # Specify the path to your chromedriver if needed
     driver = webdriver.Chrome(service=service, options=options)
+    driver.execute_cdp_cmd('Page.addScriptToEvaluateOnNewDocument', {
+        'source': '''
+        Object.defineProperty(navigator, 'webdriver', {
+            get: () => undefined
+        })
+        '''
+    })
     return driver
 
 def search_goodreads_and_extract_genres(query_data):
@@ -111,7 +128,7 @@ def search_goodreads_and_extract_genres(query_data):
 
         driver.get(search_url)
         try:
-            WebDriverWait(driver, 1).until(
+            WebDriverWait(driver, 3).until(
                 EC.presence_of_element_located((By.CSS_SELECTOR, 'tr[itemscope][itemtype="http://schema.org/Book"]'))
             )
         except:
@@ -119,6 +136,7 @@ def search_goodreads_and_extract_genres(query_data):
             save_genres_to_file(original_filename, None, directory)
             return
 
+        # Parse only the necessary part of the page
         strainer = SoupStrainer("tr", {"itemscope": "", "itemtype": "http://schema.org/Book"})
         soup = BeautifulSoup(driver.page_source, "lxml", parse_only=strainer)
 
@@ -176,7 +194,7 @@ def extract_genres_from_goodreads(driver, url):
 
     try:
         # Attempt to find and click the "Show more" button if it exists
-        more_button = WebDriverWait(driver, 1).until(
+        more_button = WebDriverWait(driver, 2).until(
             EC.element_to_be_clickable((By.CSS_SELECTOR, 'button[aria-label="Show all items in the list"]'))
         )
         more_button.click()
@@ -184,8 +202,9 @@ def extract_genres_from_goodreads(driver, url):
         # Button not found or not clickable, no action needed
         pass
 
-    # Parse the page source after potential interaction
-    soup = BeautifulSoup(driver.page_source, 'lxml')
+    # Parse only the necessary part of the page
+    strainer = SoupStrainer('span', class_='BookPageMetadataSection__genreButton')
+    soup = BeautifulSoup(driver.page_source, 'lxml', parse_only=strainer)
 
     # Find all genre buttons directly
     genres = [
