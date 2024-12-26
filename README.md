@@ -22,8 +22,9 @@ Note - It is set up to process 10 books at a time
 # sortgui.py
 1. Browse for a folder that has been processed by grsearch.py and load the epub and txt files
 2. Sort by genre and view books associated with the selected genre
-3. Button to delete currently filtered books
-4. Button to move currently filtered books to a folder with the genre name
+3. Type to search/filter box
+4. Button to delete currently filtered books
+5. Button to move currently filtered books to a folder with the genre name
 
 ![sortgui](https://github.com/secretlycarl/epub_filter_tool/blob/main/sortgui/sortgui.png)
 
