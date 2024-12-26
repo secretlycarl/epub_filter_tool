@@ -171,26 +171,28 @@ def extract_ratings_from_search_page(result):
     return 0
 
 def extract_genres_from_goodreads(driver, url):
-    """Extract genres from a Goodreads book page."""
+    """Extract genres from a Goodreads book page efficiently."""
     driver.get(url)
+
     try:
+        # Attempt to find and click the "Show more" button if it exists
         more_button = WebDriverWait(driver, 1).until(
-            EC.presence_of_element_located((By.CSS_SELECTOR, 'button[aria-label="Show all items in the list"]'))
+            EC.element_to_be_clickable((By.CSS_SELECTOR, 'button[aria-label="Show all items in the list"]'))
         )
         more_button.click()
-        WebDriverWait(driver, 1).until(
-            EC.presence_of_element_located((By.CSS_SELECTOR, 'span.BookPageMetadataSection__genreButton'))
-        )
-    except:
-        print("No 'Show more' button found, proceeding with available genres.")
+    except Exception:
+        # Button not found or not clickable, no action needed
+        pass
 
+    # Parse the page source after potential interaction
     soup = BeautifulSoup(driver.page_source, 'lxml')
-    genres = []
-    genre_buttons = soup.find_all('span', class_='BookPageMetadataSection__genreButton')
-    for button in genre_buttons:
-        label = button.find('span', class_='Button__labelItem')
-        if label:
-            genres.append(label.get_text())
+
+    # Find all genre buttons directly
+    genres = [
+        label.get_text()
+        for button in soup.select('span.BookPageMetadataSection__genreButton')
+        if (label := button.select_one('span.Button__labelItem'))
+    ]
 
     return genres
 
