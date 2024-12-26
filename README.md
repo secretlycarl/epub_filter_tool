@@ -34,3 +34,5 @@ I don't think my implementation of selenium with the webdriver and beautifulsoup
 - For each batch of 10 books, it opens up 10 new webdriver chrome windows. I want to make it so that it reuses the same 10 over and over.
 - I want to combine the two scripts into one to make the install process and general use easier
 
+# Note
+Making thousands of requests to GoodReads servers is going to get you rate limited/temp banned for a day or so. I'm working on a way to find when this happens so it doesn't just save "unknown" to a bunch of files when it shouldn't.
