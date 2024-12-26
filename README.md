@@ -28,7 +28,8 @@ Note - It is set up to process 10 books at a time
 ![sortgui](https://github.com/secretlycarl/epub_filter_tool/blob/main/sortgui/sortgui.png)
 
 # Things to Work On
-I don't think my implementation of selenium with the webdriver and beautifulsoup are as efficient as they can be, and its supposed to be headless but I can't get it to stop opening windows.
-- The pages load very quickly, but the script takes a while to parse the webpages for the content I want. It takes about 5hr to process 1000 books.
+I don't think my implementation of selenium with the webdriver and beautifulsoup are as efficient as they can be.
+- The pages load very quickly, but the script takes a while to parse the webpages for the content I want. The biggest slowdown is when it's looking for the genres. It takes about 3hr to process 1000 books.
+- For each batch of 10 books, it opens up 10 new webdriver chrome windows. I want to make it so that it reuses the same 10 over and over.
 - I want to combine the two scripts into one to make the install process and general use easier
 
