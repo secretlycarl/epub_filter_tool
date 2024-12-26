@@ -1,14 +1,10 @@
 from concurrent.futures import ThreadPoolExecutor
-from selenium import webdriver
-from selenium.webdriver.chrome.service import Service
-from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
-from bs4 import BeautifulSoup, SoupStrainer
 import os
 import re
 import urllib.parse
+import aiohttp
+import asyncio
+from bs4 import BeautifulSoup, SoupStrainer
 from transformers import AutoModelForCausalLM, AutoProcessor
 
 # Model setup
@@ -92,53 +88,21 @@ def save_genres_to_file(original_filename, genres, directory):
             f.write("unknown")
         print(f"No search results found, saved 'unknown' to: {file_path}")
 
-def create_driver():
-    """Create a headless Chrome WebDriver."""
-    options = Options()
-    options.add_argument("--headless")  # Ensure headless mode
-    options.add_argument("--disable-gpu")
-    options.add_argument("--no-sandbox")
-    options.add_argument("--disable-dev-shm-usage")
-    options.add_argument("--window-size=1920,1080")
-    options.add_argument("--disable-extensions")
-    options.add_argument("--disable-blink-features=AutomationControlled")
-    options.add_argument("user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36")
-    options.add_experimental_option("excludeSwitches", ["enable-automation"])
-    options.add_experimental_option('useAutomationExtension', False)
-    
-    service = Service()  # Specify the path to your chromedriver if needed
-    driver = webdriver.Chrome(service=service, options=options)
-    driver.execute_cdp_cmd('Page.addScriptToEvaluateOnNewDocument', {
-        'source': '''
-        Object.defineProperty(navigator, 'webdriver', {
-            get: () => undefined
-        })
-        '''
-    })
-    return driver
+async def fetch(session, url):
+    """Fetch a URL asynchronously."""
+    async with session.get(url) as response:
+        return await response.text()
 
-def search_goodreads_and_extract_genres(query_data):
+async def search_goodreads_and_extract_genres(query_data):
     """Search Goodreads for a book and extract its genres if the book has enough ratings."""
     original_filename, sanitized_filename, directory = query_data
-    driver = create_driver()
-    try:
-        base_url = "https://www.goodreads.com/search?q="
-        encoded_query = urllib.parse.quote_plus(sanitized_filename)
-        search_url = base_url + encoded_query
+    base_url = "https://www.goodreads.com/search?q="
+    encoded_query = urllib.parse.quote_plus(sanitized_filename)
+    search_url = base_url + encoded_query
 
-        driver.get(search_url)
-        try:
-            WebDriverWait(driver, 3).until(
-                EC.presence_of_element_located((By.CSS_SELECTOR, 'tr[itemscope][itemtype="http://schema.org/Book"]'))
-            )
-        except:
-            print(f"No search results found for query: {sanitized_filename}")
-            save_genres_to_file(original_filename, None, directory)
-            return
-
-        # Parse only the necessary part of the page
-        strainer = SoupStrainer("tr", {"itemscope": "", "itemtype": "http://schema.org/Book"})
-        soup = BeautifulSoup(driver.page_source, "lxml", parse_only=strainer)
+    async with aiohttp.ClientSession() as session:
+        search_page = await fetch(session, search_url)
+        soup = BeautifulSoup(search_page, "lxml", parse_only=SoupStrainer("tr", {"itemscope": "", "itemtype": "http://schema.org/Book"}))
 
         first_result = soup.find("tr", {"itemscope": "", "itemtype": "http://schema.org/Book"})
 
@@ -163,14 +127,13 @@ def search_goodreads_and_extract_genres(query_data):
         book_url = "https://www.goodreads.com" + book_link["href"]
         print(f"Book URL: {book_url}")
 
-        genres = extract_genres_from_goodreads(driver, book_url)
+        book_page = await fetch(session, book_url)
+        genres = extract_genres_from_goodreads(book_page)
 
         if genres:
             save_genres_to_file(original_filename, genres, directory)
         else:
             save_genres_to_file(original_filename, None, directory)
-    finally:
-        driver.quit()
 
 def extract_ratings_from_search_page(result):
     """Extract the number of ratings from the search page result."""
@@ -188,23 +151,9 @@ def extract_ratings_from_search_page(result):
                 return 0
     return 0
 
-def extract_genres_from_goodreads(driver, url):
-    """Extract genres from a Goodreads book page efficiently."""
-    driver.get(url)
-
-    try:
-        # Attempt to find and click the "Show more" button if it exists
-        more_button = WebDriverWait(driver, 2).until(
-            EC.element_to_be_clickable((By.CSS_SELECTOR, 'button[aria-label="Show all items in the list"]'))
-        )
-        more_button.click()
-    except Exception:
-        # Button not found or not clickable, no action needed
-        pass
-
-    # Parse only the necessary part of the page
-    strainer = SoupStrainer('span', class_='BookPageMetadataSection__genreButton')
-    soup = BeautifulSoup(driver.page_source, 'lxml', parse_only=strainer)
+def extract_genres_from_goodreads(page_content):
+    """Extract genres from a Goodreads book page content."""
+    soup = BeautifulSoup(page_content, 'lxml', parse_only=SoupStrainer('span', class_='BookPageMetadataSection__genreButton'))
 
     # Find all genre buttons directly
     genres = [
@@ -222,8 +171,13 @@ def process_folder(directory):
     for i in range(0, len(filenames), 10):  # Process in batches of 10
         batch = filenames[i:i + 10]
         with ThreadPoolExecutor(max_workers=10) as executor:
-            results = executor.map(process_single_file, batch, [directory] * len(batch))
-            executor.map(search_goodreads_and_extract_genres, results)
+            results = list(executor.map(process_single_file, batch, [directory] * len(batch)))
+            # Ensure that the results are converted into a list before passing to asyncio.gather
+            asyncio.run(gather_tasks(results))
+
+async def gather_tasks(results):
+    """Run the search_goodreads_and_extract_genres tasks concurrently."""
+    await asyncio.gather(*[search_goodreads_and_extract_genres(result) for result in results])
 
 if __name__ == "__main__":
     while True:
