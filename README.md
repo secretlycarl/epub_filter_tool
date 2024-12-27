@@ -30,6 +30,7 @@ Note - It is set up to process 10 books at a time. It runs ok on my beefy PC, bu
 
 # Things to Work On
 - I want to combine the two scripts into one to make the install process and general use easier
+- Try to implement a more lightweight LLM. The current model is ~8GB so a graphics card with at least that much VRAM is needed
 
 # Note
 Making thousands of requests to GoodReads servers is going to get you rate limited/temp banned for a day or so. I'm working on a way to find when this happens so it doesn't just save "unknown" to a bunch of files when it shouldn't.
