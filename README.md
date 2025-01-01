@@ -14,6 +14,7 @@ pip install -r requirements.txt
 
 python main.py, or run the .ps1
 
+
 This is the basic flow of the script -
 
 # main.py
