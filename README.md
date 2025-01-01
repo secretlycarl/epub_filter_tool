@@ -1,5 +1,5 @@
 # epub_filter_tool
-A tool to find genres associated with epubs by searching goodreads, with a simple GUI to sort them once processed.
+A tool to find genres associated with epubs by searching goodreads, with a simple GUI to sort them as they are processed.
 
 # Windows Install
 git clone https://github.com/secretlycarl/epub_filter_tool
