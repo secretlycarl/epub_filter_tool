@@ -1,5 +1,18 @@
 # epub_filter_tool
-a tool to find genres associated with epubs by searching goodreads, with a simple GUI to sort them once processed
+A tool to find genres associated with epubs by searching goodreads, with a simple GUI to sort them once processed.
+
+# Windows Install
+git clone https://github.com/secretlycarl/epub_filter_tool
+
+cd epub_filter_tool
+
+python -m venv venv
+
+.\venv\Scripts\activate
+
+pip install -r requirements.txt
+
+python main.py, or run the .ps1
 
 This is the basic flow of the script -
 
