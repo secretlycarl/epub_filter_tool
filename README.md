@@ -12,8 +12,7 @@ python -m venv venv
 
 pip install -r requirements.txt
 
-python main.py, or run the .ps1
-
+python main.py
 
 This is the basic flow of the script -
 
