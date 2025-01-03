@@ -2,17 +2,17 @@
 A tool to find genres associated with epubs by searching goodreads, with a simple GUI to sort them as they are processed.
 
 # Windows Install
-git clone https://github.com/secretlycarl/epub_filter_tool
+'git clone https://github.com/secretlycarl/epub_filter_tool'
 
-cd epub_filter_tool
+'cd epub_filter_tool'
 
-python -m venv venv
+'python -m venv venv'
 
-.\venv\Scripts\activate
+'.\venv\Scripts\activate'
 
-pip install -r requirements.txt
+'pip install -r requirements.txt'
 
-python main.py
+'python main.py'
 
 This is the basic flow of the script -
 
@@ -41,4 +41,4 @@ Note - It is set up to process 15 books at a time. It runs ok on my beefy PC, bu
 - Try to implement a more lightweight LLM. The current model is ~8GB so a graphics card with at least that much VRAM is needed
 
 # Note
-Making thousands of requests to GoodReads servers might get you rate limited/temp banned for a day or so. I'm working on a way to find when this happens so it doesn't just save "unknown" to a bunch of files when it shouldn't.
+Making thousands of requests to GoodReads servers might get you rate limited/temp banned for a day or so. I can do 3k books/day without issue but it happened once in my testing with more than 5k books.
