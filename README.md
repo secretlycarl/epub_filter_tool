@@ -33,6 +33,7 @@ Note - It is set up to process 15 books at a time. It runs ok on my beefy PC, bu
 2. Type to search/filter box
 3. Button to delete currently filtered books
 4. Button to move currently filtered books to a folder with the genre name
+5. The UI updates as books are processed. If you open a folder that has already been processed, click "Update" to load in the list of genre tags.
 
 ![sortgui](https://github.com/secretlycarl/epub_filter_tool/blob/main/gui-screenshot.png)
 
