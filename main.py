@@ -48,8 +48,6 @@ def clean_filename_with_llm(filename):
 
     generation_args = {
         "max_new_tokens": 1000,
-        "temperature": 0.0,
-        "do_sample": False,
     }
 
     generate_ids = model.generate(**inputs,
@@ -199,7 +197,7 @@ class GenreFileFilterApp:
         self.executor = ThreadPoolExecutor(max_workers=1)
         self.directory = ""
         self.genres = {}
-        self.selected_genre = None
+        self.selected_genres = set()
         self.genre_buttons = {}
         self.create_widgets()
 
@@ -338,38 +336,37 @@ class GenreFileFilterApp:
         self.filter_epub_files()
 
     def on_genre_toggle(self, genre):
-        if self.selected_genre == genre:
-            self.selected_genre = None
+        if genre in self.selected_genres:
+            self.selected_genres.remove(genre)
         else:
-            self.selected_genre = genre
-
-        for g, button in self.genre_buttons.items():
-            if g != genre:
-                button.var.set(0)
+            self.selected_genres.add(genre)
 
         self.filter_epub_files()
 
     def filter_epub_files(self):
         self.epub_listbox.delete(0, tk.END)
 
-        if self.selected_genre:
+        if self.selected_genres:
             for book_name, genres in self.genres.items():
-                if self.selected_genre in genres:
+                if any(selected in genres for selected in self.selected_genres):
                     epub_file = f"{book_name}.epub"
                     self.epub_listbox.insert(tk.END, epub_file)
 
     def delete_books(self):
-        if not self.selected_genre:
-            messagebox.showerror("Error", "Please select a genre first.")
+        if not self.selected_genres:
+            messagebox.showerror("Error", "Please select at least one genre.")
             return
-        
-        confirm = messagebox.askyesno("Confirm Deletion", f"Are you sure you want to delete all books for genre '{self.selected_genre}'?")
+
+        genre_list = ", ".join(f"'{g}'" for g in self.selected_genres)
+        confirm = messagebox.askyesno(
+            "Confirm Deletion", f"Are you sure you want to delete all books for genres {genre_list}?"
+        )
         if not confirm:
             return
 
         files_deleted = 0
         for book_name, genres in self.genres.items():
-            if self.selected_genre in genres:
+            if any(selected in genres for selected in self.selected_genres):
                 epub_file = f"{book_name}.epub"
                 txt_file = f"{book_name}.txt"
                 epub_path = os.path.join(self.directory, epub_file)
@@ -382,12 +379,16 @@ class GenreFileFilterApp:
                     os.remove(txt_path)
                     files_deleted += 1
 
-        self.update_content()
-
         if files_deleted > 0:
-            messagebox.showinfo("Success", f"Deleted {files_deleted} files associated with the genre '{self.selected_genre}'.")
+            messagebox.showinfo("Success", f"Deleted {files_deleted} files associated with genres {genre_list}.")
         else:
-            messagebox.showwarning("No Files Found", "No files found to delete for the selected genre.")
+            messagebox.showwarning("No Files Found", "No files found to delete for the selected genres.")
+
+        self.selected_genres.clear()
+        for button in self.genre_buttons.values():
+            button.var.set(0)
+
+        self.update_content()
 
     def filter_genres(self, event=None):
         search_text = self.search_entry.get().lower()
@@ -402,66 +403,55 @@ class GenreFileFilterApp:
         self.genre_canvas.configure(scrollregion=self.genre_canvas.bbox("all"))
 
     def move_books(self):
-        if not self.selected_genre:
-            messagebox.showerror("Error", "Please select a genre first.")
+        if not self.selected_genres:
+            messagebox.showerror("Error", "Please select at least one genre.")
             return
-        
-        genre_folder = os.path.join(self.directory, self.selected_genre)
-        try:
-            os.makedirs(genre_folder, exist_ok=True)
-        except Exception as e:
-            messagebox.showerror("Error", f"Could not create folder: {str(e)}")
-            return
-        
-        books_to_move = []
-        for book_name, genres in self.genres.items():
-            if self.selected_genre in genres:
-                epub_file = f"{book_name}.epub"
-                txt_file = f"{book_name}.txt"
-                books_to_move.extend([epub_file, txt_file])
-        
-        if not books_to_move:
-            messagebox.showinfo("Info", "No books found for selected genre.")
-            return
-        
+
+        genre_list = ", ".join(f"'{g}'" for g in self.selected_genres)
         confirm = messagebox.askyesno(
             "Confirm Move",
-            f"Move {len(books_to_move)} files to folder '{self.selected_genre}'?"
+            f"Move all matching files into subfolders named by genre?\nSelected genres: {genre_list}"
         )
         if not confirm:
             return
-        
+
         moved_count = 0
         errors = []
-        for filename in books_to_move:
-            src_path = os.path.join(self.directory, filename)
-            dst_path = os.path.join(genre_folder, filename)
-            
+
+        for genre in self.selected_genres:
+            genre_folder = os.path.join(self.directory, genre)
             try:
-                if os.path.exists(src_path):
-                    base, ext = os.path.splitext(dst_path)
-                    counter = 1
-                    while os.path.exists(dst_path):
-                        dst_path = f"{base}_{counter}{ext}"
-                        counter += 1
-                    
-                    os.rename(src_path, dst_path)
-                    moved_count += 1
+                os.makedirs(genre_folder, exist_ok=True)
             except Exception as e:
-                errors.append(f"{filename}: {str(e)}")
-        
+                messagebox.showerror("Error", f"Could not create folder '{genre}': {str(e)}")
+                continue
+
+            for book_name, genres in self.genres.items():
+                if genre in genres:
+                    for ext in [".epub", ".txt"]:
+                        src_path = os.path.join(self.directory, f"{book_name}{ext}")
+                        dst_path = os.path.join(genre_folder, f"{book_name}{ext}")
+                        try:
+                            if os.path.exists(src_path):
+                                base, ext_actual = os.path.splitext(dst_path)
+                                counter = 1
+                                while os.path.exists(dst_path):
+                                    dst_path = f"{base}_{counter}{ext_actual}"
+                                    counter += 1
+                                os.rename(src_path, dst_path)
+                                moved_count += 1
+                        except Exception as e:
+                            errors.append(f"{book_name}{ext}: {str(e)}")
+
         if errors:
-            error_msg = "\n".join(errors)
-            messagebox.showerror(
-                "Errors Occurred",
-                f"Moved {moved_count} files. Errors:\n{error_msg}"
-            )
+            messagebox.showerror("Errors Occurred", f"Moved {moved_count} files. Errors:\n" + "\n".join(errors))
         else:
-            messagebox.showinfo(
-                "Success",
-                f"Successfully moved {moved_count} files to '{self.selected_genre}' folder."
-            )
-        
+            messagebox.showinfo("Success", f"Successfully moved {moved_count} files into genre folders.")
+
+        self.selected_genres.clear()
+        for button in self.genre_buttons.values():
+            button.var.set(0)
+
         self.update_content()
 
     def process_folder(self, directory):
