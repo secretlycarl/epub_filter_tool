@@ -23,6 +23,9 @@ model = AutoModelForCausalLM.from_pretrained(
 )
 processor = AutoProcessor.from_pretrained(model_id, trust_remote_code=True)
 
+# Configuration
+BATCH_SIZE = 20  # Change this value to control how many files are processed per batch
+
 def clean_filename_with_llm(filename):
     """Use LLM to clean up the filename."""
     system_prompt = (
@@ -174,9 +177,9 @@ def process_folder(directory):
     # Filter out files that already have an associated .txt file
     filenames = [f for f in filenames if not os.path.exists(os.path.join(directory, os.path.splitext(f)[0] + ".txt"))]
 
-    for i in range(0, len(filenames), 15):  # Process in batches of 15
-        batch = filenames[i:i + 15]
-        with ThreadPoolExecutor(max_workers=15) as executor:
+    for i in range(0, len(filenames), BATCH_SIZE):
+        batch = filenames[i:i + BATCH_SIZE]
+        with ThreadPoolExecutor(max_workers=BATCH_SIZE) as executor:
             results = list(executor.map(process_single_file, batch, [directory] * len(batch)))
             # Ensure that the results are converted into a list before passing to asyncio.gather
             asyncio.run(gather_tasks(results))
@@ -464,9 +467,9 @@ class GenreFileFilterApp:
             self.status_label.config(text="No files to process.")
             return
 
-        for i in range(0, total_files, 15):
-            batch = filenames[i:i + 15]
-            with ThreadPoolExecutor(max_workers=15) as executor:
+        for i in range(0, total_files, BATCH_SIZE):
+            batch = filenames[i:i + BATCH_SIZE]
+            with ThreadPoolExecutor(max_workers=BATCH_SIZE) as executor:
                 results = list(executor.map(process_single_file, batch, [directory] * len(batch)))
                 asyncio.run(gather_tasks(results))
         
@@ -476,8 +479,7 @@ class GenreFileFilterApp:
             self.update_content()  # Update the UI dynamically
 
         self.status_label.config(text="Ready")
-
-
+        
 if __name__ == "__main__":
     root = tk.Tk()
     app = GenreFileFilterApp(root)
