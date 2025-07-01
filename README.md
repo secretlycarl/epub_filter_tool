@@ -28,7 +28,7 @@ This is the basic flow of the script -
 7. Once the book is found, it navigates to the book page to find the genres, and saves them to a text file.
 8. Once the entire is folder is processed, another folder path can be entered.
    
-Note - It is set up to process 15 books at a time. It runs ok on my beefy PC, but if you run into any performance issues or rate limiting, reduce ```BATCH_SIZE``` to a lower value.
+Note - It is set up to process 20 books at a time. It runs ok on my beefy PC, but if you run into any performance issues or rate limiting, reduce ```BATCH_SIZE``` near the top to a lower value.
 
 # GUI
 1. Sort by genre and view books associated with the selected genre
