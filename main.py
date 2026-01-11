@@ -11,6 +11,36 @@ import asyncio
 import threading
 from bs4 import BeautifulSoup, SoupStrainer
 from transformers import AutoModelForCausalLM, AutoProcessor
+from transformers.cache_utils import DynamicCache
+
+# Patch DynamicCache to add missing attributes/methods for compatibility
+# This fixes the compatibility issue with Phi-3.5-vision-instruct's custom code
+if not hasattr(DynamicCache, 'seen_tokens'):
+    def _get_seen_tokens(self):
+        if hasattr(self, 'key_cache') and len(self.key_cache) > 0:
+            # key_cache is a tuple of tensors, each with shape [batch, num_heads, seq_len, head_dim]
+            # seen_tokens should be the sequence length (seq_len)
+            return self.key_cache[0].shape[-2]
+        return 0
+    DynamicCache.seen_tokens = property(_get_seen_tokens)
+
+# Patch get_max_length() method - maps to get_seq_length() for compatibility
+if not hasattr(DynamicCache, 'get_max_length'):
+    def _get_max_length(self):
+        # get_max_length() should return the maximum cache length
+        # For DynamicCache, this is the same as get_seq_length()
+        return self.get_seq_length()
+    DynamicCache.get_max_length = _get_max_length
+
+# Patch get_usable_length() method - returns usable cache length
+if not hasattr(DynamicCache, 'get_usable_length'):
+    def _get_usable_length(self, seq_length, layer_idx=None):
+        # get_usable_length(seq_length, layer_idx) returns the usable length of the cache
+        # For DynamicCache, this is the current cache length (up to seq_length)
+        # layer_idx is ignored for DynamicCache but required for compatibility
+        cache_len = self.get_seq_length()
+        return min(cache_len, seq_length) if seq_length is not None else cache_len
+    DynamicCache.get_usable_length = _get_usable_length
 
 # Model setup
 model_id = "microsoft/Phi-3.5-vision-instruct"
@@ -18,13 +48,13 @@ model = AutoModelForCausalLM.from_pretrained(
     model_id, 
     device_map="cuda", 
     trust_remote_code=True, 
-    torch_dtype="auto", 
+    dtype="auto", 
     _attn_implementation='eager'    
 )
 processor = AutoProcessor.from_pretrained(model_id, trust_remote_code=True)
 
 # Configuration
-BATCH_SIZE = 20  # Change this value to control how many files are processed per batch
+BATCH_SIZE = 40  # Change this value to control how many files are processed per batch
 
 def clean_filename_with_llm(filename):
     """Use LLM to clean up the filename."""
@@ -51,6 +81,7 @@ def clean_filename_with_llm(filename):
 
     generation_args = {
         "max_new_tokens": 1000,
+        "use_cache": False,  # Disable caching to avoid compatibility issues
     }
 
     generate_ids = model.generate(**inputs,
@@ -479,7 +510,7 @@ class GenreFileFilterApp:
             self.update_content()  # Update the UI dynamically
 
         self.status_label.config(text="Ready")
-        
+
 if __name__ == "__main__":
     root = tk.Tk()
     app = GenreFileFilterApp(root)
